@@ -51,7 +51,7 @@ app.post('/upload/pdf', upload.single('pdf'), (req, res) => {
 })
 
 app.get('/chat', async (req, res) => {
-    const userQuery = 'sensor'
+    const userQuery = (req.query.message as string)
     const embeddings = new GoogleGenerativeAIEmbeddings({
         apiKey: process.env.GEMINI_API_KEY,
         model: "text-embedding-004",
@@ -72,6 +72,7 @@ app.get('/chat', async (req, res) => {
         return `Document ${index + 1}:\n${doc.pageContent}`;
     }).join('\n\n');
 
+
     const SYSTEM_PROMPT = `You are a helpful AI assistant that answers questions based on the provided document context. 
 
         INSTRUCTIONS:
@@ -89,7 +90,7 @@ app.get('/chat', async (req, res) => {
         Please provide a helpful answer based on the context above.`;
 
     const selectModel = genAI.getGenerativeModel({
-        model: "gemini-1.5-flash",
+        model: "gemini-2.5-flash",
         generationConfig: {
             temperature: 0.3,
             topP: 0.8,
@@ -98,10 +99,12 @@ app.get('/chat', async (req, res) => {
         }
     });
 
-    const output = await selectModel.generateContent(SYSTEM_PROMPT)
+    const output = await selectModel.generateContent(SYSTEM_PROMPT);
+    const answer = output.response.text();
 
     return res.json({
-        answer: output.response.text
+        message: answer,
+        docs: result
     })
 
 })
