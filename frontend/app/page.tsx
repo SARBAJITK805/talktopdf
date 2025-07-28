@@ -7,9 +7,9 @@ import axios from "axios";
 
 interface Message {
   id: string,
-  sender: "user" | "ai",
+  sender: string,
   text: string,
-  timestamp: Date
+  timestamp: string
 }
 
 export default function PDFChatApp() {
@@ -21,8 +21,41 @@ export default function PDFChatApp() {
   const [uploadedFile, setUploadedFile] = useState<string | null>();
   const messagesEndRef = useRef(null);
 
-  function handleSendMessage() {
+  async function handleSendMessage() {
+    if (!inputMessage) return;
+    const userMessage = {
+      id: Date.now().toString(),
+      text: inputMessage,
+      sender: "user",
+      timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    };
+    setMessages(prev => [...prev, userMessage]);
+    setInputMessage("");
+    setIsLoading(true)
 
+    try {
+      const response = await axios.get(`http://localhost:3001/chat?message=${encodeURIComponent(inputMessage)}`);
+
+      const botMessage = {
+        id: (Date.now() + 1).toString(),
+        text: response.data.message,
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+
+      setMessages(prev => [...prev, botMessage]);
+
+    } catch (error) {
+      const errorMessage = {
+        id: (Date.now() + 1).toString(),
+        text: "Sorry, I encountered an error while processing your question. Please try again.",
+        sender: 'bot',
+        timestamp: new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+      };
+      setMessages(prev => [...prev, errorMessage]);
+    } finally {
+      setIsLoading(false);
+    }
   }
 
   function handleFileUpload() {
@@ -48,9 +81,12 @@ export default function PDFChatApp() {
     element.click();
   }
 
-  function handleKeyPress() {
-
-  }
+  const handleKeyPress = (e: any) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-slate-50 to-slate-100">
